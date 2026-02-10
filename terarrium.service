@@ -1,0 +1,14 @@
+[Unit]
+Description=ыыыыыыыыыыыы
+After=network.target
+
+[Service]
+Type=simple
+User=undead
+WorkingDirectory=/opt/terarrium
+ExecStart=/opt/terarrium/terarrium
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
