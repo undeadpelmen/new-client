@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление террариумом</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { border: 1px solid #ccc; border-radius: 5px; padding: 15px; background: #f9f9f9; }
+        .sensor-value { font-size: 2em; font-weight: bold; }
+        .status-on { color: green; }
+        .status-off { color: red; }
+        .error { color: #d9534f; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<h1>Управление террариумом</h1>
+
+<div class="dashboard">
+    <div class="card">
+        <h2>Датчики</h2>
+        <div>Температура: <span id="temp" class="sensor-value">--</span>°C</div>
+        <div>Влажность: <span id="humidity" class="sensor-value">--</span>%</div>
+        <div id="sensor-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>Реле</h2>
+        <div>Свет: <span id="light-status" class="status-off">Выкл</span></div>
+        <div>Нагреватель: <span id="heater-status" class="status-off">Выкл</span></div>
+        <div>Помпа: <span id="pump-status" class="status-off">Выкл</span></div>
+    </div>
+
+    <div class="card">
+        <h2>Система</h2>
+        <div>Режим: <span id="system-mode">--</span></div>
+        <div>Циклов: <span id="cycle-count">0</span></div>
+        <div>Аптайм: <span id="uptime">0</span> сек</div>
+    </div>
+</div>
+
+<div style="margin-top: 30px;">
+    <button onclick="fetchData()">Обновить</button>
+    <button onclick="toggleMock()">Переключить режим имитации</button>
+    <button onclick="testSensor()">Тест датчика</button>
+</div>
+
+<script>
+    async function fetchData() {
+        try {
+            const response = await fetch('/api/v1/state');
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                const d = data.data;
+                document.getElementById('temp').textContent = d.sensors.temperature.toFixed(1);
+                document.getElementById('humidity').textContent = d.sensors.humidity.toFixed(1);
+
+                document.getElementById('light-status').textContent = d.relays.light ? 'Вкл' : 'Выкл';
+                document.getElementById('light-status').className = d.relays.light ? 'status-on' : 'status-off';
+
+                document.getElementById('heater-status').textContent = d.relays.heater ? 'Вкл' : 'Выкл';
+                document.getElementById('heater-status').className = d.relays.heater ? 'status-on' : 'status-off';
+
+                document.getElementById('pump-status').textContent = d.relays.pump ? 'Вкл' : 'Выкл';
+                document.getElementById('pump-status').className = d.relays.pump ? 'status-on' : 'status-off';
+
+                document.getElementById('system-mode').textContent = d.system.mode;
+                document.getElementById('cycle-count').textContent = d.system.cycle_count;
+                document.getElementById('uptime').textContent = d.system.uptime;
+
+                document.getElementById('sensor-status').textContent = d.sensors.sensor_error ?
+                    'Ошибка датчика!' : 'Датчик OK';
+                document.getElementById('sensor-status').className = d.sensors.sensor_error ? 'error' : '';
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    async function toggleMock() {
+        const response = await fetch('/api/v1/mock', { method: 'POST' });
+        const data = await response.json();
+        alert(data.message);
+        fetchData();
+    }
+
+    async function testSensor() {
+        const response = await fetch('/api/v1/sensor/test');
+        const data = await response.json();
+        if (data.status === 'success') {
+            alert(`Температура: ${data.data.temperature}°C\nВлажность: ${data.data.humidity}%`);
+        } else {
+            alert('Ошибка датчика: ' + data.message);
+        }
+    }
+
+    setInterval(fetchData, 10000);
+    fetchData();
+</script>
+</body>
+</html>

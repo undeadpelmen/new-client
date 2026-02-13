@@ -235,8 +235,8 @@ func (api *WebAPI) SetupRouter() *gin.Engine {
 		apiRoute.GET("/sensor/test", api.testSensor)
 	}
 
-	router.StaticFile("/", "./web/static/index.html")
-	router.Static("/static", "./web/static")
+	router.StaticFile("/", "./static/index.html")
+	router.Static("/", "./web/static")
 
 	return router
 }
