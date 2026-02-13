@@ -1,10 +1,8 @@
 sudo mkdir /opt/terarrium
 
-go mod init github.com/undeadpelmen/new-client
+go get
 
 go mod tidy
-
-go get
 
 go build -o terarrium-app .
 
