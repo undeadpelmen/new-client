@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=undead
 WorkingDirectory=/opt/terarrium
-ExecStart=/opt/terarrium/terarrium
+ExecStart=/opt/terarrium/terarrium-app
 Restart=on-failure
 RestartSec=10
 

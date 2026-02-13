@@ -6,9 +6,9 @@ go mod tidy
 
 go get
 
-go build -o ./cmd/server/main.go terarrium
+go build -o ./main.go terarrium-app
 
-sudo mv terarrium /opt/terarrium
+sudo mv terarrium-app /opt/terarrium-app
 
 sudo cp ./terarrium.service /etc/systemd/system/terarrium.service
 
