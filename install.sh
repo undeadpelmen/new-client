@@ -8,9 +8,9 @@ go get
 
 go build -o ./cmd/server/main.go terarrium
 
-mv terarrium /opt/terarrium
+sudo mv terarrium /opt/terarrium
 
-cp ./terarrium.service /etc/systemd/system/terarrium.service
+sydo cp ./terarrium.service /etc/systemd/system/terarrium.service
 
 sudo systemctl daemon-reload
 sudo systemctl enable terrarium.service
