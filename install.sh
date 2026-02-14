@@ -1,55 +1,62 @@
-#!/bin/bash
-# install.sh – Automated installer for Terrarium Go application
+#!/bin/sh
+# install.sh – POSIX‑compliant installer for Terrarium Go application
 
-set -e  # Exit on any error
+set -e  # exit on any error
 
 # Configuration
 APP_NAME="terarrium-app"
 INSTALL_DIR="/opt/terarrium"
 SERVICE_NAME="terrarium.service"
-SERVICE_FILE="./terrarium.service"   # adjust if the file is elsewhere
-USER="undead"                         # service will run as this user
+SERVICE_FILE="./terrarium.service"   # adjust path if needed
+USER="undead"
 
-# Colours for pretty output
+# Colour output (optional; some shells may not support \033)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Colour
+NC='\033[0m'
 
-echo -e "${GREEN}Starting installation of Terrarium...${NC}"
+# Use printf for portable coloured output
+printf "${GREEN}Starting installation of Terrarium...${NC}\n"
 
-# Check if running as root (or with sudo)
-if [ "$EUID" -ne 0 ]; then
-    echo -e "${YELLOW}Not running as root. Some commands will use sudo.${NC}"
+# Check if running as root; if not, we'll use sudo
+if [ "$(id -u)" -ne 0 ]; then
+    printf "${YELLOW}Not running as root. Some commands will use sudo.${NC}\n"
     SUDO="sudo"
 else
     SUDO=""
 fi
 
-# 1. Verify required tools
-command -v go >/dev/null 2>&1 || { echo -e "${RED}Go is not installed. Please install Go first.${NC}" >&2; exit 1; }
-command -v systemctl >/dev/null 2>&1 || { echo -e "${RED}systemctl not found. This script requires systemd.${NC}" >&2; exit 1; }
+# Verify required tools
+if ! command -v go >/dev/null 2>&1; then
+    printf "${RED}Go is not installed. Please install Go first.${NC}\n" >&2
+    exit 1
+fi
+if ! command -v systemctl >/dev/null 2>&1; then
+    printf "${RED}systemctl not found. This script requires systemd.${NC}\n" >&2
+    exit 1
+fi
 
-# 2. Create installation directory
-echo -e "${GREEN}Creating installation directory at $INSTALL_DIR...${NC}"
+# Create installation directory
+printf "${GREEN}Creating installation directory at %s...${NC}\n" "$INSTALL_DIR"
 $SUDO mkdir -p "$INSTALL_DIR"
 
-# 3. Build the Go binary
-echo -e "${GREEN}Building $APP_NAME...${NC}"
+# Build the Go binary
+printf "${GREEN}Building %s...${NC}\n" "$APP_NAME"
 go mod tidy
 go build -o "$APP_NAME" .
 
-# 4. Move binary to installation directory
-echo -e "${GREEN}Moving binary to $INSTALL_DIR...${NC}"
+# Move binary to installation directory
+printf "${GREEN}Moving binary to %s...${NC}\n" "$INSTALL_DIR"
 $SUDO mv "$APP_NAME" "$INSTALL_DIR/"
 $SUDO chmod +x "$INSTALL_DIR/$APP_NAME"
 
-# 5. Copy systemd service file
-echo -e "${GREEN}Installing systemd service...${NC}"
+# Copy (or create) systemd service file
+printf "${GREEN}Installing systemd service...${NC}\n"
 if [ ! -f "$SERVICE_FILE" ]; then
-    echo -e "${YELLOW}Service file $SERVICE_FILE not found. Creating default...${NC}"
-    # Create a default service file (adjust ExecStart if needed)
-    cat << EOF | $SUDO tee "$SERVICE_FILE" >/dev/null
+    printf "${YELLOW}Service file %s not found. Creating default...${NC}\n" "$SERVICE_FILE"
+    # Write a default service file (using cat + heredoc)
+    $SUDO tee "$SERVICE_FILE" >/dev/null <<EOF
 [Unit]
 Description=Terrarium Go Application
 After=network.target
@@ -66,30 +73,30 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 else
-    echo -e "${GREEN}Using existing $SERVICE_FILE.${NC}"
+    printf "${GREEN}Using existing %s.${NC}\n" "$SERVICE_FILE"
 fi
 
 $SUDO cp "$SERVICE_FILE" /etc/systemd/system/
 
-# 6. Reload systemd and enable/start service
-echo -e "${GREEN}Reloading systemd daemon...${NC}"
+# Reload systemd and enable/start service
+printf "${GREEN}Reloading systemd daemon...${NC}\n"
 $SUDO systemctl daemon-reload
 
-echo -e "${GREEN}Enabling $SERVICE_NAME to start on boot...${NC}"
+printf "${GREEN}Enabling %s to start on boot...${NC}\n" "$SERVICE_NAME"
 $SUDO systemctl enable "$SERVICE_NAME"
 
-echo -e "${GREEN}Starting $SERVICE_NAME...${NC}"
+printf "${GREEN}Starting %s...${NC}\n" "$SERVICE_NAME"
 $SUDO systemctl start "$SERVICE_NAME"
 
-# 7. Check service status
-sleep 2  # give it a moment
+# Check service status
+sleep 2
 if $SUDO systemctl is-active --quiet "$SERVICE_NAME"; then
-    echo -e "${GREEN}Service $SERVICE_NAME is running.${NC}"
+    printf "${GREEN}Service %s is running.${NC}\n" "$SERVICE_NAME"
     $SUDO systemctl status "$SERVICE_NAME" --no-pager
 else
-    echo -e "${RED}Service $SERVICE_NAME failed to start. Showing logs:${NC}"
+    printf "${RED}Service %s failed to start. Showing logs:${NC}\n" "$SERVICE_NAME"
     $SUDO journalctl -u "$SERVICE_NAME" -n 20 --no-pager
     exit 1
 fi
 
-echo -e "${GREEN}Installation completed successfully.${NC}"
+printf "${GREEN}Installation completed successfully.${NC}\n"
