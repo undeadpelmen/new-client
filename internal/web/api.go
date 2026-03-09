@@ -82,7 +82,7 @@ func (api *WebAPI) updateSettings(c *gin.Context) {
 	if err := c.BindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "Неверный формат данных",
+			"message": "Invalid data format",
 		})
 		return
 	}
@@ -129,7 +129,7 @@ func (api *WebAPI) updateSettings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"message": "Настройки обновлены",
+		"message": "Settings updated",
 	})
 }
 
@@ -137,7 +137,7 @@ func (api *WebAPI) resetSettings(c *gin.Context) {
 	api.terrarium.ResetSettings()
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"message": "Настройки сброшены к значениям по умолчанию",
+		"message": "Settings reset to defaults",
 	})
 }
 
@@ -181,7 +181,7 @@ func (api *WebAPI) toggleMockData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"message": fmt.Sprintf("Режим имитации: %v", !settings.UseMockData),
+		"message": fmt.Sprintf("Simulation mode: %v", !settings.UseMockData),
 	})
 }
 
@@ -190,7 +190,7 @@ func (api *WebAPI) testSensor(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
-			"message": fmt.Sprintf("Ошибка датчика: %v", err),
+			"message": fmt.Sprintf("Sensor error: %v", err),
 		})
 		return
 	}

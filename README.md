@@ -5,7 +5,7 @@ For this project you must have go 1.25 or later
 
 ```shell
 
-git clone https://github,com/undeadpelmen/new-client.git
+git clone https://github.com/undeadpelmen/new-client.git
 
 cd new-client
 

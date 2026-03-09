@@ -19,7 +19,7 @@ type RelayController struct {
 
 func NewRelayController() (*RelayController, error) {
 	if _, err := host.Init(); err != nil {
-		return nil, fmt.Errorf("ошибка инициализации periph: %v", err)
+		return nil, fmt.Errorf("periph initialization error: %v", err)
 	}
 
 	pinLight := rpi.P1_11
@@ -28,17 +28,17 @@ func NewRelayController() (*RelayController, error) {
 	pinDHT22 := rpi.P1_7
 
 	if err := pinLight.Out(gpio.Low); err != nil {
-		return nil, fmt.Errorf("ошибка настройки пина света: %v", err)
+		return nil, fmt.Errorf("light pin setup error: %v", err)
 	}
 	if err := pinHeater.Out(gpio.Low); err != nil {
-		return nil, fmt.Errorf("ошибка настройки пина нагревателя: %v", err)
+		return nil, fmt.Errorf("heater pin setup error: %v", err)
 	}
 	if err := pinPump.Out(gpio.Low); err != nil {
-		return nil, fmt.Errorf("ошибка настройки пина помпы: %v", err)
+		return nil, fmt.Errorf("pump pin setup error: %v", err)
 	}
 
-	log.Println("GPIO инициализированы успешно")
-	log.Printf("Пины: Свет=%v, Нагреватель=%v, Помпа=%v, DHT22=%v",
+	log.Println("GPIO initialized successfully")
+	log.Printf("Pins: Light=%v, Heater=%v, Pump=%v, DHT22=%v",
 		pinLight, pinHeater, pinPump, pinDHT22)
 
 	return &RelayController{
@@ -93,7 +93,7 @@ func (rc *RelayController) GetDHT22Pin() gpio.PinIO {
 }
 
 func (rc *RelayController) Shutdown() {
-	log.Println("Выключаю все реле...")
+	log.Println("Turning off all relays...")
 	rc.SetLight(false)
 	rc.SetHeater(false)
 	rc.SetPump(false)

@@ -16,7 +16,7 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Система управления террариумом v2.0")
+	log.Println("Terrarium control system v2.0")
 
 	terrariumInstance := terrarium.NewTerrarium()
 
@@ -25,28 +25,28 @@ func main() {
 
 	relayController, err = gpio.NewRelayController()
 	if err != nil {
-		log.Printf("Ошибка инициализации GPIO: %v", err)
-		log.Println("Переключаюсь в режим имитации")
+		log.Printf("GPIO initialization error: %v", err)
+		log.Println("Switching to simulation mode")
 		terrariumInstance.UpdateSettings(func(s *terrarium.TerrariumSettings) {
 			s.UseMockData = true
 		})
 		relayController = nil
 	} else {
-		log.Println("GPIO успешно инициализированы")
+		log.Println("GPIO initialized successfully")
 	}
 
 	controller := terrarium.NewTerrariumController(terrariumInstance, relayController)
 
 	if relayController != nil {
-		log.Println("Тестирование датчика DHT22...")
+		log.Println("Testing DHT22 sensor...")
 		if reading, err := controller.TestSensor(); err != nil {
-			log.Printf("DHT22 не отвечает: %v", err)
-			log.Println("Переключаюсь в режим имитации")
+			log.Printf("DHT22 not responding: %v", err)
+			log.Println("Switching to simulation mode")
 			terrariumInstance.UpdateSettings(func(s *terrarium.TerrariumSettings) {
 				s.UseMockData = true
 			})
 		} else {
-			log.Printf("DHT22 работает: T=%.1f°C, H=%.1f%%",
+			log.Printf("DHT22 working: T=%.1f°C, H=%.1f%%",
 				reading.Temperature, reading.Humidity)
 		}
 	}
@@ -54,7 +54,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log.Println("Запуск основного цикла управления...")
+	log.Println("Starting main control loop...")
 	go controller.ControlLoop(ctx)
 
 	webAPI := web.NewWebAPI(terrariumInstance, controller)
@@ -66,28 +66,28 @@ func main() {
 	}
 
 	go func() {
-		log.Println("HTTP сервер запускается на порту 8080")
-		log.Println("Веб-интерфейс: http://localhost:8080")
+		log.Println("HTTP server starting on port 8080")
+		log.Println("Web interface: http://localhost:8080")
 		log.Println("API: http://localhost:8080/api/v1/state")
 
 		if terrariumInstance.GetSettings().UseMockData {
-			log.Println("Режим: ИМИТАЦИЯ")
+			log.Println("Mode: SIMULATION")
 		} else {
-			log.Println("Режим: РЕАЛЬНЫЙ ДАТЧИК")
+			log.Println("Mode: REAL SENSOR")
 		}
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Ошибка HTTP сервера: %v", err)
+			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("Система запущена. Ctrl+C для остановки")
+	log.Println("System started. Ctrl+C to stop")
 
 	<-sigChan
-	log.Println("Получен сигнал завершения")
+	log.Println("Shutdown signal received")
 
 	cancel()
 
@@ -95,12 +95,12 @@ func main() {
 	defer shutdownCancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Ошибка при остановке HTTP сервера: %v", err)
+		log.Printf("HTTP server shutdown error: %v", err)
 	}
 
 	if relayController != nil {
 		relayController.Shutdown()
 	}
 
-	log.Println("Система остановлена корректно")
+	log.Println("System stopped gracefully")
 }

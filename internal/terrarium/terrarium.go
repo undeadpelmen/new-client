@@ -49,20 +49,20 @@ func (tc *TerrariumController) readMockSensorData() (temp, humidity float32, err
 	if tc.mockHumidity > 80.0 {
 		tc.mockHumidity = 50.0
 	}
-	log.Printf("Мок-данные: T=%.1f°C, H=%.1f%%", tc.mockTemp, tc.mockHumidity)
+	log.Printf("Mock data: T=%.1f°C, H=%.1f%%", tc.mockTemp, tc.mockHumidity)
 	return tc.mockTemp, tc.mockHumidity, nil
 }
 
 func (tc *TerrariumController) readRealSensorData() (temp, humidity float32, err error) {
 	if tc.sensor == nil {
-		return 0, 0, fmt.Errorf("датчик DHT22 не инициализирован")
+		return 0, 0, fmt.Errorf("DHT22 sensor not initialized")
 	}
 	reading, err := tc.sensor.ReadWithRetry(2)
 	if err != nil {
-		log.Printf("Ошибка чтения DHT22: %v", err)
+		log.Printf("DHT22 read error: %v", err)
 		return 0, 0, err
 	}
-	log.Printf("Данные DHT22: T=%.1f°C, H=%.1f%%",
+	log.Printf("DHT22 data: T=%.1f°C, H=%.1f%%",
 		reading.Temperature, reading.Humidity)
 	return reading.Temperature, reading.Humidity, nil
 }
@@ -103,7 +103,7 @@ func (tc *TerrariumController) ShouldLightBeOn() bool {
 }
 
 func (tc *TerrariumController) ControlLoop(ctx context.Context) {
-	log.Println("Запуск цикла управления террариумом")
+	log.Println("Starting terrarium control loop")
 
 	tc.terrarium.UpdateState(func(s *TerrariumState) {
 		s.Uptime = time.Now()
@@ -116,7 +116,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Остановка цикла управления")
+			log.Println("Stopping control loop")
 			if tc.relays != nil {
 				tc.relays.SetLight(false)
 				tc.relays.SetHeater(false)
@@ -135,13 +135,13 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			if lightShouldBeOn != currentLightState {
 				if tc.relays != nil {
 					if err := tc.relays.SetLight(lightShouldBeOn); err != nil {
-						log.Printf("Ошибка управления светом: %v", err)
+						log.Printf("Light control error: %v", err)
 						tc.terrarium.UpdateState(func(s *TerrariumState) {
 							s.SystemMode = "error"
 						})
 						errorCount++
 					} else {
-						log.Printf("Освещение: %v", lightShouldBeOn)
+						log.Printf("Lighting: %v", lightShouldBeOn)
 					}
 				}
 
@@ -152,7 +152,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 
 			temp, humidity, err := tc.ReadSensorData()
 			if err != nil {
-				log.Printf("Ошибка чтения датчика: %v", err)
+				log.Printf("Sensor read error: %v", err)
 				tc.terrarium.UpdateState(func(s *TerrariumState) {
 					s.SensorError = true
 					s.SystemMode = "error"
@@ -184,9 +184,9 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			if heaterShouldBeOn != currentHeaterState {
 				if tc.relays != nil {
 					if err := tc.relays.SetHeater(heaterShouldBeOn); err != nil {
-						log.Printf("Ошибка управления нагревателем: %v", err)
+						log.Printf("Heater control error: %v", err)
 					} else if heaterShouldBeOn {
-						log.Printf("Нагреватель включен (T=%.1f < %.1f)", temp, targetTemp)
+						log.Printf("Heater turned on (T=%.1f < %.1f)", temp, targetTemp)
 					}
 				}
 
@@ -216,9 +216,9 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			if pumpShouldBeOn && !currentPumpState {
 				if tc.relays != nil {
 					if err := tc.relays.SetPump(true); err != nil {
-						log.Printf("Ошибка включения помпы: %v", err)
+						log.Printf("Pump turn-on error: %v", err)
 					} else {
-						log.Printf("Помпа включена на %d сек (H=%.1f < %.1f)",
+						log.Printf("Pump turned on for %d sec (H=%.1f < %.1f)",
 							pumpDuration, humidity, targetHumidity)
 
 						go func(duration int) {
@@ -228,9 +228,9 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 							case <-time.After(time.Duration(duration) * time.Second):
 								if tc.relays != nil {
 									if err := tc.relays.SetPump(false); err != nil {
-										log.Printf("Ошибка выключения помпы: %v", err)
+										log.Printf("Pump shutdown error: %v", err)
 									} else {
-										log.Println("Помпа выключена")
+										log.Println("Pump turned off")
 									}
 								}
 							}
@@ -248,7 +248,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			} else if !pumpShouldBeOn && currentPumpState {
 				if tc.relays != nil {
 					if err := tc.relays.SetPump(false); err != nil {
-						log.Printf("Ошибка выключения помпы: %v", err)
+						log.Printf("Pump turn-off error: %v", err)
 					}
 				}
 
@@ -265,7 +265,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 
 				if errorCount >= maxErrors {
 					s.SystemMode = "critical"
-					log.Printf("Критический режим! %d ошибок подряд", errorCount)
+					log.Printf("Critical mode! %d consecutive errors", errorCount)
 				}
 			})
 
@@ -282,7 +282,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			pause := settings.CyclePause
 			if errorCount > 0 {
 				pause = pause * 2
-				log.Printf("Увеличенная пауза %d сек из-за ошибок", pause)
+				log.Printf("Increased pause %d sec due to errors", pause)
 			}
 
 			select {
@@ -296,7 +296,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 
 func (tc *TerrariumController) TestSensor() (*sensor.DHT22Reading, error) {
 	if tc.sensor == nil {
-		return nil, fmt.Errorf("датчик DHT22 не инициализирован")
+		return nil, fmt.Errorf("DHT22 sensor not initialized")
 	}
 	return tc.sensor.ReadWithRetry(3)
 }
