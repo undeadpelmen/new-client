@@ -1,6 +1,8 @@
+const api_prefix = 'http://10.197.49.102:8080'
+
 async function fetchData() {
     try {
-        const response = await fetch('/api/v1/state');
+        const response = await fetch(api_prefix + '/api/v1/state');
         const data = await response.json();
 
         if (data.status === 'success') {
@@ -31,14 +33,14 @@ async function fetchData() {
 }
 
 async function toggleMock() {
-    const response = await fetch('/api/v1/mock', { method: 'POST' });
+    const response = await fetch(api_prefix + '/api/v1/mock', { method: 'POST' });
     const data = await response.json();
     alert(data.message);
     fetchData();
 }
 
 async function testSensor() {
-    const response = await fetch('/api/v1/sensor/test');
+    const response = await fetch(api_prefix + '/api/v1/sensor/test');
     const data = await response.json();
     if (data.status === 'success') {
         alert(`Температура: ${data.data.temperature}°C\nВлажность: ${data.data.humidity}%`);

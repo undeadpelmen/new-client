@@ -102,5 +102,9 @@ func main() {
 		relayController.Shutdown()
 	}
 
+	if err := controller.Close(); err != nil {
+		log.Printf("Controller shutdown error: %v", err)
+	}
+
 	log.Println("System stopped gracefully")
 }

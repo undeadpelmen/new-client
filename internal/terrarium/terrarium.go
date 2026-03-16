@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/undeadpelmen/new-client/internal/display"
 	"github.com/undeadpelmen/new-client/internal/gpio"
 	"github.com/undeadpelmen/new-client/internal/sensor"
 )
@@ -15,6 +16,7 @@ type TerrariumController struct {
 	terrarium    *Terrarium
 	relays       *gpio.RelayController
 	sensor       *sensor.DHT22
+	display      *display.OLEDDisplay
 	mockTemp     float32
 	mockHumidity float32
 	mockTempDir  float32
@@ -27,10 +29,30 @@ func NewTerrariumController(terrarium *Terrarium, relays *gpio.RelayController) 
 		dht22 = sensor.NewDHT22(relays.GetDHT22Pin(), "GPIO4")
 	}
 
+	// Initialize OLED display
+	var oledDisplay *display.OLEDDisplay
+	if relays != nil {
+		display, err := display.NewOLEDDisplay()
+		if err != nil {
+			log.Printf("Failed to initialize OLED display: %v", err)
+			oledDisplay = nil
+		} else {
+			if err := display.Init(); err != nil {
+				log.Printf("Failed to initialize OLED display: %v", err)
+				display.Close()
+				oledDisplay = nil
+			} else {
+				oledDisplay = display
+				log.Println("OLED display initialized successfully")
+			}
+		}
+	}
+
 	return &TerrariumController{
 		terrarium:    terrarium,
 		relays:       relays,
 		sensor:       dht22,
+		display:      oledDisplay,
 		mockTemp:     25.0,
 		mockHumidity: 65.0,
 		mockTempDir:  0.1,
@@ -269,6 +291,13 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 				}
 			})
 
+			// Update OLED display with sensor data
+			if tc.display != nil {
+				if err := tc.display.DisplaySensorData(temp, humidity); err != nil {
+					log.Printf("Display update error: %v", err)
+				}
+			}
+
 			tc.terrarium.AddHistoryRecord(HistoricalRecord{
 				Timestamp:   time.Now(),
 				Temperature: temp,
@@ -299,4 +328,15 @@ func (tc *TerrariumController) TestSensor() (*sensor.DHT22Reading, error) {
 		return nil, fmt.Errorf("DHT22 sensor not initialized")
 	}
 	return tc.sensor.ReadWithRetry(3)
+}
+
+func (tc *TerrariumController) Close() error {
+	if tc.display != nil {
+		if err := tc.display.Close(); err != nil {
+			log.Printf("Error closing display: %v", err)
+			return err
+		}
+		log.Println("OLED display closed")
+	}
+	return nil
 }
