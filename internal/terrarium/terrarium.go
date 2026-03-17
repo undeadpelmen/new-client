@@ -233,6 +233,8 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 						log.Printf("Heater control error: %v", err)
 					} else if heaterShouldBeOn {
 						log.Printf("Heater turned on (T=%.1f < %.1f)", temp, targetTemp)
+					} else {
+						log.Printf("Heater turned off")
 					}
 				}
 
