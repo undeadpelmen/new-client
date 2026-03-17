@@ -32,17 +32,19 @@ func NewTerrariumController(terrarium *Terrarium, relays *gpio.RelayController) 
 	// Initialize OLED display
 	var oledDisplay *display.OLEDDisplay
 	if relays != nil {
-		display, err := display.NewOLEDDisplay()
+		oled, err := display.NewOLEDDisplay()
 		if err != nil {
 			log.Printf("Failed to initialize OLED display: %v", err)
 			oledDisplay = nil
 		} else {
-			if err := display.Init(); err != nil {
+			if err := oled.Init(); err != nil {
 				log.Printf("Failed to initialize OLED display: %v", err)
-				display.Close()
+				oledDisplay = nil
+			} else if err := oled.Close(); err != nil {
+				log.Printf("Failed to close OLED display: %v", err)
 				oledDisplay = nil
 			} else {
-				oledDisplay = display
+				oledDisplay = oled
 				log.Println("OLED display initialized successfully")
 			}
 		}
@@ -106,15 +108,31 @@ func (tc *TerrariumController) ShouldLightBeOn() bool {
 	}
 
 	now := time.Now()
-	hour, min, _ := now.Clock()
-	currentMinutes := hour*60 + min
+	hour, minute, _ := now.Clock()
+	currentMinutes := hour*60 + minute
 
 	var startHour, startMin int
-	fmt.Sscanf(settings.LightSchedule.StartTime, "%d:%d", &startHour, &startMin)
+	n, err := fmt.Sscanf(settings.LightSchedule.StartTime, "%d:%d", &startHour, &startMin)
+	if err != nil || n != 2 {
+		log.Printf("Failed to parse start time '%s': %v", settings.LightSchedule.StartTime, err)
+		return false
+	}
+	if startHour < 0 || startHour > 23 || startMin < 0 || startMin > 59 {
+		log.Printf("Invalid start time values: hour=%d, min=%d", startHour, startMin)
+		return false
+	}
 	startMinutes := startHour*60 + startMin
 
 	var endHour, endMin int
-	fmt.Sscanf(settings.LightSchedule.EndTime, "%d:%d", &endHour, &endMin)
+	n, err = fmt.Sscanf(settings.LightSchedule.EndTime, "%d:%d", &endHour, &endMin)
+	if err != nil || n != 2 {
+		log.Printf("Failed to parse end time '%s': %v", settings.LightSchedule.EndTime, err)
+		return false
+	}
+	if endHour < 0 || endHour > 23 || endMin < 0 || endMin > 59 {
+		log.Printf("Invalid end time values: hour=%d, min=%d", endHour, endMin)
+		return false
+	}
 	endMinutes := endHour*60 + endMin
 
 	if startMinutes > endMinutes {
@@ -140,9 +158,15 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 		case <-ctx.Done():
 			log.Println("Stopping control loop")
 			if tc.relays != nil {
-				tc.relays.SetLight(false)
-				tc.relays.SetHeater(false)
-				tc.relays.SetPump(false)
+				if err := tc.relays.SetLight(false); err != nil {
+					log.Printf("Error turning off light during shutdown: %v", err)
+				}
+				if err := tc.relays.SetHeater(false); err != nil {
+					log.Printf("Error turning off heater during shutdown: %v", err)
+				}
+				if err := tc.relays.SetPump(false); err != nil {
+					log.Printf("Error turning off pump during shutdown: %v", err)
+				}
 			}
 			return
 
@@ -219,20 +243,21 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 
 			targetHumidity := settings.Targets.Humidity
 			pumpDuration := settings.PumpSettings.DurationSeconds
-			pumpMinInterval := settings.PumpSettings.MinInterval
+			//pumpMinInterval := settings.PumpSettings.MinInterval
 
-			var lastPumpRun time.Time
+			//var lastPumpRun time.Time
 			var currentPumpState bool
 			tc.terrarium.UpdateState(func(s *TerrariumState) {
-				lastPumpRun = s.LastPumpRun
+				//lastPumpRun = s.LastPumpRun
 				currentPumpState = s.PumpRelay
 			})
 
 			pumpShouldBeOn := false
 			if humidity < targetHumidity {
-				if time.Since(lastPumpRun) > time.Duration(pumpMinInterval)*time.Second {
-					pumpShouldBeOn = true
-				}
+				pumpShouldBeOn = true
+				//if time.Since(lastPumpRun) > time.Duration(pumpMinInterval)*time.Second {
+				//
+				//}
 			}
 
 			if pumpShouldBeOn && !currentPumpState {

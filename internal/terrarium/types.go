@@ -68,9 +68,9 @@ func NewTerrarium() *Terrarium {
 	settings.LightSchedule.Enabled = true
 	settings.Targets.Temperature = 26.0
 	settings.Targets.Humidity = 70.0
-	settings.PumpSettings.DurationSeconds = 10
-	settings.PumpSettings.MinInterval = 300
-	settings.CyclePause = 30
+	settings.PumpSettings.DurationSeconds = 1000
+	settings.PumpSettings.MinInterval = 3
+	settings.CyclePause = 5
 	settings.UseMockData = false
 
 	return &Terrarium{
@@ -144,9 +144,9 @@ func (t *Terrarium) ResetSettings() {
 		s.LightSchedule.Enabled = true
 		s.Targets.Temperature = 26.0
 		s.Targets.Humidity = 70.0
-		s.PumpSettings.DurationSeconds = 10
-		s.PumpSettings.MinInterval = 300
-		s.CyclePause = 30
+		s.PumpSettings.DurationSeconds = 1000
+		s.PumpSettings.MinInterval = 3
+		s.CyclePause = 5
 		s.UseMockData = false
 	})
 }

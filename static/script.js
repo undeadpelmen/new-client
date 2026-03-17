@@ -1,4 +1,4 @@
-const api_prefix = 'http://10.197.49.102:8080'
+const api_prefix = 'http://10.218.51.114:8080'
 
 async function fetchData() {
     try {
