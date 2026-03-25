@@ -244,7 +244,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 			}
 
 			targetHumidity := settings.Targets.Humidity
-			pumpDuration := settings.PumpSettings.DurationSeconds
+			//pumpDuration := settings.PumpSettings.DurationSeconds
 			//pumpMinInterval := settings.PumpSettings.MinInterval
 
 			//var lastPumpRun time.Time
@@ -254,36 +254,15 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 				currentPumpState = s.PumpRelay
 			})
 
-			pumpShouldBeOn := false
-			if humidity < targetHumidity {
-				pumpShouldBeOn = true
-				//if time.Since(lastPumpRun) > time.Duration(pumpMinInterval)*time.Second {
-				//
-				//}
-			}
+			pumpShouldBeOn := humidity < targetHumidity
 
 			if pumpShouldBeOn && !currentPumpState {
 				if tc.relays != nil {
 					if err := tc.relays.SetPump(true); err != nil {
 						log.Printf("Pump turn-on error: %v", err)
 					} else {
-						log.Printf("Pump turned on for %d sec (H=%.1f < %.1f)",
-							pumpDuration, humidity, targetHumidity)
-
-						go func(duration int) {
-							select {
-							case <-ctx.Done():
-								return
-							case <-time.After(time.Duration(duration) * time.Second):
-								if tc.relays != nil {
-									if err := tc.relays.SetPump(false); err != nil {
-										log.Printf("Pump shutdown error: %v", err)
-									} else {
-										log.Println("Pump turned off")
-									}
-								}
-							}
-						}(pumpDuration)
+						log.Printf("Pump turned on (H=%.1f < %.1f)",
+							humidity, targetHumidity)
 
 						tc.terrarium.UpdateState(func(s *TerrariumState) {
 							s.LastPumpRun = time.Now()
@@ -298,6 +277,8 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 				if tc.relays != nil {
 					if err := tc.relays.SetPump(false); err != nil {
 						log.Printf("Pump turn-off error: %v", err)
+					} else {
+						log.Printf("Pump turned off (%.1f > %.1f)", humidity, targetHumidity)
 					}
 				}
 
