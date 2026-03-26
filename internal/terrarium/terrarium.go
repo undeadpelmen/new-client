@@ -278,7 +278,7 @@ func (tc *TerrariumController) ControlLoop(ctx context.Context) {
 					if err := tc.relays.SetPump(false); err != nil {
 						log.Printf("Pump turn-off error: %v", err)
 					} else {
-						log.Printf("Pump turned off (%.1f > %.1f)", humidity, targetHumidity)
+						log.Printf("Pump turned off (H=%.1f > %.1f)", humidity, targetHumidity)
 					}
 				}
 
